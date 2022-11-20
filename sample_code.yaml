@@ -1,0 +1,46 @@
+# Linter for LookML
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  lams_job:
+    runs-on: ubuntu-latest
+    name: LAMS LookML Linter Job
+    steps:
+    - name: Checkout your LookML
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16
+    - name: Install LAMS
+      run: npm install -g @looker/look-at-me-sideways
+    - name: Run LAMS
+      id: lams_run
+      run: lams --reporting=save-yes --output=markdown --on-parser-error=info || echo "LAMS_ERROR=true" >> $GITHUB_ENV
+    - name: Set LAMS Status
+      id: lams_status
+      run: |
+        if [ "$LAMS_ERROR" ]; then
+          echo "There are errors in the LookML. Please address them."
+        fi
+    - name: Commit and Push
+      id: final
+      # continue-on-error: true
+      run: |
+        ls -al
+        git add .
+        git config --local user.email "github-action-bot@github.com"
+        git config --local user.name "GitHub Action Bot"
+        git commit -m "LAMS feedback" -a
+        git push
+    - name: Dump steps context
+      env:
+        STEPS_CONTEXT: ${{ toJson(steps) }}
+      run: echo "$STEPS_CONTEXT"
